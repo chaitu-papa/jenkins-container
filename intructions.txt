@@ -1,0 +1,9 @@
+Generation of plugins.txt file
+1) http://34.196.120.121:49001/script
+2)
+Jenkins.instance.pluginManager.plugins.each{
+  plugin -> 
+    println ("${plugin.getShortName()}: ${plugin.getVersion()}")
+}
+
+3)

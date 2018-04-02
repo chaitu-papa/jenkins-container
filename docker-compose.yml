@@ -1,0 +1,9 @@
+jenkins-master:
+  container_name: jenkins-container
+  build: .
+  ports:
+    - "49009:8080"
+    - "50009:50000"
+  volumes:
+    - /data/jenkins_home:/var/jenkins_home
+  restart: always
