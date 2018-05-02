@@ -1,0 +1,188 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.17">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty/>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty plugin="github@1.29.0">
+      <projectUrl>https://github.com/chaitu-papa/petclinic/</projectUrl>
+      <displayName></displayName>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+    <com.sonyericsson.rebuild.RebuildSettings plugin="rebuild@1.27">
+      <autoRebuild>false</autoRebuild>
+      <rebuildDisabled>false</rebuildDisabled>
+    </com.sonyericsson.rebuild.RebuildSettings>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>app_name</name>
+          <description></description>
+          <defaultValue>spring-petclinic</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>subnet</name>
+          <description></description>
+          <defaultValue>subnet-f02683aa</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sg_group</name>
+          <description></description>
+          <defaultValue>sg-9157bbe0</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>env_name</name>
+          <description></description>
+          <defaultValue>DEV</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ami_id</name>
+          <description></description>
+          <defaultValue>ami-6c533e16</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>infra_type</name>
+          <description></description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>t2.micro</string>
+              <string>t2.medium</string>
+              <string>t2.large</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>min_instances</name>
+          <description></description>
+          <defaultValue>1</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>max_instances</name>
+          <description></description>
+          <defaultValue>5</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>cf_sg_group</name>
+          <description></description>
+          <defaultValue>sg-a69a48d7</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>cf_subnet</name>
+          <description></description>
+          <defaultValue>subnet-82fc95ca,subnet-35f84b19</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>hosted_zone</name>
+          <description></description>
+          <defaultValue>devops-coe-cts.com</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>alias_hosted_zone_id</name>
+          <description></description>
+          <defaultValue>Z35SXDOTRQ7X7K</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>group_id</name>
+          <description></description>
+          <defaultValue>org.springframework.samples</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers>
+        <hudson.triggers.SCMTrigger>
+          <spec></spec>
+          <ignorePostCommitHooks>false</ignorePostCommitHooks>
+        </hudson.triggers.SCMTrigger>
+      </triggers>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.43">
+    <script>
+node(&apos;Linux&apos;) {
+    stage(&apos;pull-source&apos;) { 
+	    hygieiaBuildPublishStep buildStatus: &apos;InProgress&apos;
+	    cleanWs()
+        checkout([$class: &apos;GitSCM&apos;, branches: [[name: &quot;*/master&quot;]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: &apos;c7e60db1-4689-46b7-92dc-1cd7ffcc3f16&apos;, url: &apos;git@github.com:chaitu-papa/petclinic.git&apos;]]])
+   }
+   stage(&apos;compile-unit-test&apos;) {
+      // Run the gradle build
+      if (isUnix()) {        
+         sh &apos;chmod +x gradlew&apos;
+         sh &quot;./gradlew clean build&quot;
+		 hygieiaBuildPublishStep buildStatus: &apos;InProgress&apos;
+      } else {
+         bat(/&quot;gradlew.bat&quot; clean build/)
+      }
+   }
+   stage(&apos;code-coverage&apos;) {
+      // Run the gradle build
+      if (isUnix()) {
+         sh &apos;chmod +x gradlew&apos;
+         sh &quot;./gradlew jacocoTestReport&quot;
+		 hygieiaBuildPublishStep buildStatus: &apos;InProgress&apos;
+      } else {
+         bat(/&quot;gradlew.bat&quot; jacocoTestReport/)
+      }
+   }
+    stage(&apos;code-analysis&apos;) {
+      // Run the gradle sonar
+      if (isUnix()) {
+          withCredentials([string(credentialsId: &apos;sonar-token&apos;, variable: &apos;Sonar_token&apos;)]) {
+          sh &quot;./gradlew sonarqube -Dsonar.host.url=$env.SONAR_URL -Dsonar.login=$Sonar_token -Dsonar.projectVersion=1.0.$BUILD_NUMBER&quot; }
+		  hygieiaBuildPublishStep buildStatus: &apos;InProgress&apos;
+       } else { 
+         bat(/&quot;gradlew.bat&quot; clean build jacocoTestReport/)
+      }
+   }
+    stage(&apos;artifact-publish&apos;) {
+      // Run the gradle upload
+      if (isUnix()) {
+        env.SNAPSHOT=&quot;SNAPSHOT&quot;
+        env.BUILD_NUM=&quot;$env.BUILD_NUMBER&quot;
+        sh &apos;chmod +x gradlew&apos;
+        sh &quot;./gradlew upload --info&quot;
+		archive &apos;build/libs/&apos;		
+		hygieiaArtifactPublishStep artifactDirectory: &apos;build/libs/&apos;, artifactGroup: &apos;$group_id&apos;, artifactName: &apos;*.war&apos;, artifactVersion: &apos;1.0.$BUILD_NUMBER&apos;
+		hygieiaBuildPublishStep buildStatus: &apos;SUCCESS&apos;
+	     
+      } else {
+         bat(/&quot;gradlew.bat&quot; upload/)
+      }
+   }
+    
+     stage(&apos;bake-image&apos;) {
+                 
+      if (isUnix()) {
+         withCredentials([[$class: &apos;AmazonWebServicesCredentialsBinding&apos;, accessKeyVariable: &apos;AWS_ACCESS_KEY_ID&apos;, credentialsId: &apos;AWS&apos;, secretKeyVariable: &apos;AWS_SECRET_ACCESS_KEY&apos;]]) { 
+         hygieiaDeployPublishStep applicationName: &quot;$app_name&quot;, artifactDirectory: &apos;build/libs/&apos;, artifactGroup: &apos;$group_id&apos;, artifactName: &apos;*.war&apos;, artifactVersion: &apos;1.0.$BUILD_NUMBER&apos;, buildStatus: &apos;InProgress&apos;, environmentName: &apos;BAKE&apos;        
+	     checkout([$class: &apos;GitSCM&apos;, branches: [[name: &quot;*/master&quot;]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: &apos;c7e60db1-4689-46b7-92dc-1cd7ffcc3f16&apos;, url: &apos;git@github.com:chaitu-papa/ansible-aws-playbooks.git&apos;]]])
+		 unarchive mapping: [&apos;build/libs/spring-petclinic-1.0-SNAPSHOT.war&apos;: &apos;build/libs/spring-petclinic-1.0-SNAPSHOT.war&apos;]
+		 ansiblePlaybook credentialsId: &apos;14bd8691-b88a-427a-8488-cf28846b9820&apos;, installation: &apos;ansible&apos;, extras: &apos;--extra-vars=&quot;env_name=$env_name&quot;  --extra-vars=&quot;app_name=$app_name&quot;  --extra-vars=&quot;sg_group_id=$sg_group&quot;  --extra-vars=&quot;vpc_subnet_id=$subnet&quot;  --extra-vars=&quot;instance_type=t2.micro&quot; --extra-vars=&quot;ami_id=$ami_id&quot;&apos;, playbook: &apos;provision-aws.yml&apos;, sudoUser: null
+         ansiblePlaybook credentialsId: &apos;14bd8691-b88a-427a-8488-cf28846b9820&apos;, installation: &apos;ansible&apos;,extras: &apos;--extra-vars=&quot;app_version=1.0-SNAPSHOT&quot; --extra-vars=&quot;env_name=$env_name&quot; --extra-vars=&quot;group_id=$group_id&quot;  --extra-vars=&quot;app_name=$app_name&quot;&apos;, playbook: &apos;app-deploy.yml&apos;, sudoUser: null
+         ansiblePlaybook credentialsId: &apos;14bd8691-b88a-427a-8488-cf28846b9820&apos;, installation: &apos;ansible&apos;,  extras: &apos;--extra-vars=&quot;env_name=$env_name&quot; --extra-vars=&quot;AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID&quot; --extra-vars=&quot;AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY&quot; --extra-vars=&quot;app_name=$app_name&quot; --extra-vars=&quot;env_name=$env_name&quot; --extra-vars=&quot;app_version=1.0.$BUILD_NUMBER&quot; &apos;, playbook: &apos;amicreate.yml&apos;, sudoUser: null
+         hygieiaDeployPublishStep applicationName: &quot;$app_name&quot;, artifactDirectory: &apos;build/libs/&apos;, artifactGroup: &apos;$group_id&apos;, artifactName: &apos;*.war&apos;, artifactVersion: &apos;1.0.$BUILD_NUMBER&apos;, buildStatus: &apos;SUCCESS&apos;, environmentName: &apos;BAKE&apos;        
+	  }} 
+      }
+   stage(&apos;DEV-Environment&apos;) {      
+       if (isUnix()) {
+         withCredentials([[$class: &apos;AmazonWebServicesCredentialsBinding&apos;, accessKeyVariable: &apos;AWS_ACCESS_KEY_ID&apos;, credentialsId: &apos;AWS&apos;, secretKeyVariable: &apos;AWS_SECRET_ACCESS_KEY&apos;]]) { 
+         hygieiaDeployPublishStep applicationName: &quot;$app_name&quot;, artifactDirectory: &apos;build/libs/&apos;, artifactGroup: &apos;$group_id&apos;, artifactName: &apos;*.war&apos;, artifactVersion: &apos;1.0.$BUILD_NUMBER&apos;, buildStatus: &apos;SUCCESS&apos;, environmentName: &apos;DEV&apos;        
+		 unarchive mapping: [&apos;build/libs/spring-petclinic-1.0-SNAPSHOT.war&apos;: &apos;build/libs/spring-petclinic-1.0-SNAPSHOT.war&apos;]
+		 checkout([$class: &apos;GitSCM&apos;, branches: [[name: &quot;*/master&quot;]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: &apos;c7e60db1-4689-46b7-92dc-1cd7ffcc3f16&apos;, url: &apos;git@github.com:chaitu-papa/ansible-aws-playbooks&apos;]]])
+         ansiblePlaybook credentialsId: &apos;14bd8691-b88a-427a-8488-cf28846b9820&apos;, installation: &apos;ansible&apos;, extras: &apos;--extra-vars=&quot;dns_name=$env_name&quot; --extra-vars=&quot;alias_hosted_zone_id=$alias_hosted_zone_id&quot; --extra-vars=&quot;min_instances=$min_instances&quot; --extra-vars=&quot;max_instances=$max_instances&quot; --extra-vars=&quot;cf_sg_group=$cf_sg_group&quot; --extra-vars=&quot;AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID&quot; --extra-vars=&quot;AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY&quot; --extra-vars=&quot;app_name=$app_name&quot; --extra-vars=&quot;env_name=$env_name&quot; --extra-vars=&quot;cf_subnet=$cf_subnet&quot;  --extra-vars=&quot;hosted_zone=$hosted_zone&quot; --extra-vars=&quot;app_version=1.0.$BUILD_NUMBER&quot; --extra-vars=&quot;InstanceType=$infra_type&quot; --extra-vars=&quot;group_id=$group_id&quot;&apos;, playbook: &apos;cf-aws.yml&apos;, sudoUser: null
+		 hygieiaDeployPublishStep applicationName: &quot;$app_name&quot;, artifactDirectory: &apos;build/libs/&apos;, artifactGroup: &apos;$group_id&apos;, artifactName: &apos;*.war&apos;, artifactVersion: &apos;1.0.$BUILD_NUMBER&apos;, buildStatus: &apos;SUCCESS&apos;, environmentName: &apos;DEV&apos;        
+		 				}} else {
+        
+         bat(/&quot;gradlew.bat&quot; deploy/)
+      }
+   
+   }
+}
+
+</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

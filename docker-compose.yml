@@ -5,5 +5,7 @@ jenkins-master:
     - "49009:8080"
     - "50009:50000"
   volumes:
-    - /data/jenkins_home:/var/jenkins_home
+    - /data/jenkins_home/jobs:/var/jenkins_home/jobs
+  env_file:
+    - ./settings.env
   restart: always
