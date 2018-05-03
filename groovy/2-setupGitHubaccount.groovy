@@ -60,12 +60,12 @@ if(gitCredentialId != '')
   
   def seedJobName = 'Seed_the_World'
   def seedJobDisplayName = 'Seed the World'
-  def seedDslScriptPath = 'jenkins/job-dsl/main.groovy'
+  // def seedDslScriptPath = 'jenkins/job-dsl/main.groovy'
   
-  def seedDsl = new ExecuteDslScripts()
-  seedDsl.setTargets(seedDslScriptPath)
-  seedDsl.setRemovedJobAction(RemovedJobAction.DELETE)
-  seedDsl.setRemovedViewAction(RemovedViewAction.DELETE)
+ // def seedDsl = new ExecuteDslScripts()
+ // seedDsl.setTargets(seedDslScriptPath)
+ //  seedDsl.setRemovedJobAction(RemovedJobAction.DELETE)
+ //  seedDsl.setRemovedViewAction(RemovedViewAction.DELETE)
   
   def seedGitRepo = GitSCM.createRepoList(gitUrl, gitCredentialId)
   def seedBranchSpec = [new BranchSpec(gitBranchSpec)]

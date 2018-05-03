@@ -17,7 +17,7 @@ jenkins.getInjector().getInstance(AdminWhitelistRule.class).setMasterKillSwitch(
 jenkins.getDescriptor(jenkins.CLI.class).setEnabled(false)
 
   
-def adminList = env['JENKINS_ADMINS'].tokenize(',')*.trim()
+def adminList = env['JENKIN_ADMINS'].tokenize(',')*.trim()
 
 adminList.each { username ->
 	strategy.add(Jenkins.ADMINISTER, username)
