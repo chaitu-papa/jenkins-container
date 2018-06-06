@@ -6,4 +6,6 @@ Jenkins.instance.pluginManager.plugins.each{
     println ("${plugin.getShortName()}: ${plugin.getVersion()}")
 }
 
-3)
+3) Steps to bring contianer up using compose
+   1) go to directory where docker-compose.yml file exist run docker-compose up -d
+   2) Destroy contianer by running docker-compose down

@@ -1,0 +1,6 @@
+nexus-container:
+  container_name: nexus-container
+  image: sonatype/nexus 
+  ports:
+    - "8081:8081"
+  restart: always
