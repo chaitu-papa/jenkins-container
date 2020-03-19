@@ -1,0 +1,8 @@
+mysql-container:
+  environment:
+       - MYSQL_ROOT_PASSWORD=mypassword
+  container_name: mysqlPetclinic
+  image: mysql:petclinic
+  ports:
+    - "3036:3036"
+  restart: always
